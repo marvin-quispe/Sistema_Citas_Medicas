@@ -1,0 +1,193 @@
+-- ============================================================
+-- SISTEMA DE CITAS MÉDICAS - ESQUEMA DE BASE DE DATOS MySQL
+-- ============================================================
+-- Ejecutar este script en MySQL Workbench antes de iniciar
+-- la aplicación Java.
+-- ============================================================
+
+CREATE DATABASE IF NOT EXISTS sistema_citas_medicas
+    DEFAULT CHARACTER SET utf8mb4
+    DEFAULT COLLATE utf8mb4_unicode_ci;
+
+USE sistema_citas_medicas;
+
+-- ============================================================
+-- TABLA: especialidades
+-- ============================================================
+CREATE TABLE IF NOT EXISTS especialidades (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nombre VARCHAR(100) NOT NULL,
+    descripcion VARCHAR(255) DEFAULT NULL,
+    UNIQUE KEY uk_nombre (nombre)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- TABLA: medicos
+-- ============================================================
+CREATE TABLE IF NOT EXISTS medicos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    dni VARCHAR(8) NOT NULL,
+    cmp VARCHAR(20) NOT NULL,
+    telefono VARCHAR(15) DEFAULT NULL,
+    correo VARCHAR(100) DEFAULT NULL,
+    turno VARCHAR(20) NOT NULL,
+    disponible TINYINT(1) DEFAULT 1,
+    especialidad_id INT DEFAULT NULL,
+    fecha_nacimiento VARCHAR(10) DEFAULT NULL,
+    UNIQUE KEY uk_dni (dni),
+    UNIQUE KEY uk_cmp (cmp),
+    KEY fk_medico_especialidad (especialidad_id),
+    CONSTRAINT fk_medico_especialidad
+        FOREIGN KEY (especialidad_id)
+        REFERENCES especialidades(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- TABLA: pacientes
+-- ============================================================
+CREATE TABLE IF NOT EXISTS pacientes (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nombre VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    dni VARCHAR(8) NOT NULL,
+    telefono VARCHAR(15) DEFAULT NULL,
+    correo VARCHAR(100) DEFAULT NULL,
+    fecha_nacimiento VARCHAR(10) NOT NULL,
+    sexo VARCHAR(20) DEFAULT NULL,
+    tipo_seguro VARCHAR(50) DEFAULT NULL,
+    UNIQUE KEY uk_dni_paciente (dni)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- TABLA: usuarios
+-- ============================================================
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL,
+    password VARCHAR(50) NOT NULL,
+    rol VARCHAR(20) NOT NULL,
+    nombre_completo VARCHAR(150) DEFAULT NULL,
+    entidad_id INT DEFAULT 0,
+    UNIQUE KEY uk_username (username)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- TABLA: horarios
+-- ============================================================
+CREATE TABLE IF NOT EXISTS horarios (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    medico_id INT NOT NULL,
+    dia_semana VARCHAR(15) NOT NULL,
+    turno VARCHAR(20) NOT NULL,
+    KEY fk_horario_medico (medico_id),
+    CONSTRAINT fk_horario_medico
+        FOREIGN KEY (medico_id)
+        REFERENCES medicos(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- TABLA: citas
+-- ============================================================
+CREATE TABLE IF NOT EXISTS citas (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    paciente_id INT NOT NULL,
+    medico_id INT NOT NULL,
+    fecha VARCHAR(10) NOT NULL,
+    hora VARCHAR(10) NOT NULL,
+    estado VARCHAR(20) NOT NULL DEFAULT 'Pendiente',
+    motivo_consulta VARCHAR(500) DEFAULT NULL,
+    observaciones VARCHAR(1000) DEFAULT NULL,
+    KEY fk_cita_paciente (paciente_id),
+    KEY fk_cita_medico (medico_id),
+    CONSTRAINT fk_cita_paciente
+        FOREIGN KEY (paciente_id)
+        REFERENCES pacientes(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_cita_medico
+        FOREIGN KEY (medico_id)
+        REFERENCES medicos(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- TABLA: pagos
+-- ============================================================
+CREATE TABLE IF NOT EXISTS pagos (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    cita_id INT NOT NULL,
+    monto DECIMAL(10,2) NOT NULL,
+    metodo_pago VARCHAR(30) NOT NULL,
+    fecha VARCHAR(10) NOT NULL,
+    KEY fk_pago_cita (cita_id),
+    CONSTRAINT fk_pago_cita
+        FOREIGN KEY (cita_id)
+        REFERENCES citas(id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- TABLA: urgencias
+-- ============================================================
+CREATE TABLE IF NOT EXISTS urgencias (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    paciente_nombre VARCHAR(100) NOT NULL,
+    paciente_apellido VARCHAR(100) NOT NULL,
+    paciente_dni VARCHAR(8) DEFAULT NULL,
+    paciente_telefono VARCHAR(15) DEFAULT NULL,
+    medico_id INT DEFAULT NULL,
+    fecha VARCHAR(10) NOT NULL,
+    hora VARCHAR(10) NOT NULL,
+    motivo_urgencia VARCHAR(500) NOT NULL,
+    prioridad VARCHAR(20) NOT NULL,
+    estado VARCHAR(20) NOT NULL DEFAULT 'En atención',
+    KEY fk_urgencia_medico (medico_id),
+    CONSTRAINT fk_urgencia_medico
+        FOREIGN KEY (medico_id)
+        REFERENCES medicos(id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- DATOS DE PRUEBA
+-- ============================================================
+
+-- Especialidades
+INSERT INTO especialidades (nombre, descripcion) VALUES
+('Medicina General', 'Atención primaria y preventiva'),
+('Cardiología', 'Enfermedades del corazón'),
+('Pediatría', 'Atención a menores de 18 años'),
+('Traumatología', 'Sistema óseo y muscular'),
+('Urgencias', 'Atención de emergencias'),
+('Ginecología', 'Salud reproductiva femenina'),
+('Dermatología', 'Enfermedades de la piel'),
+('Oftalmología', 'Salud visual'),
+('Neurología', 'Sistema nervioso'),
+('Psiquiatría', 'Salud mental');
+
+-- Médicos de prueba
+INSERT INTO medicos (nombre, apellido, dni, cmp, telefono, correo, turno, disponible, especialidad_id) VALUES
+('Juan', 'Pérez', '45678901', 'CMP-1001', '999111222', 'jperez@clinica.com', 'Mañana', 1, 1),
+('María', 'García', '45678902', 'CMP-1002', '999333444', 'mgarcia@clinica.com', 'Tarde', 1, 2);
+
+-- Pacientes de prueba
+INSERT INTO pacientes (nombre, apellido, dni, telefono, correo, fecha_nacimiento, sexo, tipo_seguro) VALUES
+('Carlos', 'Rodríguez', '70123456', '987654321', 'crodriguez@mail.com', '1990-05-15', 'Masculino', 'Particular'),
+('Ana', 'Martínez', '70123457', '987111222', 'amartinez@mail.com', '1985-08-20', 'Femenino', 'EsSalud');
+
+-- Usuarios de prueba
+INSERT INTO usuarios (username, password, rol, nombre_completo, entidad_id) VALUES
+('admin', '1234', 'Administrador', 'Carlos Admin', 0),
+('recepcionista', '1234', 'Recepcionista', 'Ana Recepción', 0),
+('medico', '1234', 'Médico', 'Doctor General', 0),
+('cajero', '1234', 'Cajero', 'Luis Caja', 0),
+('paciente', '1234', 'Paciente', 'Carlos Rodríguez', 1);
